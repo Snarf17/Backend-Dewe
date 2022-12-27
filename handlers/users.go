@@ -3,6 +3,7 @@ package handlers
 import (
 	dto "dewetour/dto/result"
 	userdto "dewetour/dto/users"
+	"dewetour/pkg/bcrypt"
 
 	usersdto "dewetour/dto/users"
 	"dewetour/models"
@@ -122,9 +123,21 @@ func (h *handler) UpdateUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	password, err := bcrypt.HashingPassword(request.Password)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		response := dto.ErrorResult{Code: http.StatusBadRequest, Message: err.Error()}
+		json.NewEncoder(w).Encode(response)
+		return
+	}
 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
-
-	user := models.User{}
+	user, err := h.UserRepository.GetUsers(int(id))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		response := dto.ErrorResult{Code: http.StatusBadRequest, Message: err.Error()}
+		json.NewEncoder(w).Encode(response)
+		return
+	}
 
 	if request.FullName != "" {
 		user.FullName = request.FullName
@@ -133,7 +146,7 @@ func (h *handler) UpdateUsers(w http.ResponseWriter, r *http.Request) {
 		user.Email = request.Email
 	}
 	if request.Password != "" {
-		user.Password = request.Password
+		user.Password = password
 	}
 	if request.Phone != 0 {
 		user.Phone = request.Phone
@@ -142,7 +155,7 @@ func (h *handler) UpdateUsers(w http.ResponseWriter, r *http.Request) {
 		user.Address = request.Address
 	}
 
-	data, err := h.UserRepository.UpdateUsers(user, id)
+	data, err := h.UserRepository.UpdateUsers(user)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		response := dto.ErrorResult{Code: http.StatusInternalServerError, Message: err.Error()}
@@ -154,6 +167,62 @@ func (h *handler) UpdateUsers(w http.ResponseWriter, r *http.Request) {
 	response := dto.SuccessResult{Code: http.StatusOK, Data: convertResponse(data)}
 	json.NewEncoder(w).Encode(response)
 }
+
+// func (h *handler) UpdateUsers(w http.ResponseWriter, r *http.Request) {
+// 	w.Header().Set("Content-type", "application/json")
+
+// 	request := new(userdto.UpdateUserRequest)
+// 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+// 		w.WriteHeader(http.StatusBadRequest)
+// 		response := dto.ErrorResult{Code: http.StatusBadRequest, Message: err.Error()}
+// 		json.NewEncoder(w).Encode(response)
+// 		return
+// 	}
+
+// 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
+// 	user, err := h.UserRepository.GetUsers(int(id))
+// 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+// 		w.WriteHeader(http.StatusBadRequest)
+// 		response := dto.ErrorResult{Code: http.StatusBadRequest, Message: err.Error()}
+// 		json.NewEncoder(w).Encode(response)
+// 		return
+// 	}
+// 	// password, err := bcrypt.HashingPassword(request.Password)
+// 	// if err != nil {
+// 	// 	w.WriteHeader(http.StatusBadRequest)
+// 	// 	response := dto.ErrorResult{Code: http.StatusBadRequest, Message: err.Error()}
+// 	// 	json.NewEncoder(w).Encode(response)
+// 	// 	return
+// 	// }
+
+// 	if request.FullName != "" {
+// 		user.FullName = request.FullName
+// 	}
+// 	if request.Email != "" {
+// 		user.Email = request.Email
+// 	}
+// 	if request.Password != "" {
+// 		user.Password = request.Password
+// 	}
+// 	if request.Phone != 0 {
+// 		user.Phone = request.Phone
+// 	}
+// 	if request.Address != "" {
+// 		user.Address = request.Address
+// 	}
+
+// 	data, err := h.UserRepository.UpdateUsers(user)
+// 	if err != nil {
+// 		w.WriteHeader(http.StatusInternalServerError)
+// 		response := dto.ErrorResult{Code: http.StatusInternalServerError, Message: err.Error()}
+// 		json.NewEncoder(w).Encode(response)
+// 		return
+// 	}
+
+// 	w.WriteHeader(http.StatusOK)
+// 	response := dto.SuccessResult{Code: http.StatusOK, Data: data}
+// 	json.NewEncoder(w).Encode(response)
+// }
 
 func (h *handler) DeleteUsers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")

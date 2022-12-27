@@ -15,8 +15,8 @@ func TripRoutes(r *mux.Router) {
 
 	r.HandleFunc("/trips", h.FindTrip).Methods("GET")
 	r.HandleFunc("/trips/{id}", h.GetTrip).Methods("GET")
-	r.HandleFunc("/trips", middleware.UploadFile(h.CreateTrip)).Methods("POST")
-	r.HandleFunc("/trips/{id}", h.UpdateTrip).Methods("PATCH")
+	r.HandleFunc("/trips", middleware.AuthAdmin(middleware.UploadFile(h.CreateTrip))).Methods("POST")
+	r.HandleFunc("/trips/{id}", middleware.AuthAdmin(middleware.UploadFile(h.UpdateTrip))).Methods("PATCH")
 	r.HandleFunc("/trips/{id}", h.DeleteTrip).Methods("DELETE")
 
 }

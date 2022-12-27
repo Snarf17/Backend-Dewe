@@ -43,7 +43,7 @@ func (r *repository) CreateTrip(trip models.Trip) (models.Trip, error) {
 
 func (r *repository) UpdateTrip(trip models.Trip) (models.Trip, error) {
 	// var user models.User
-	err := r.db.Save(&trip).Error
+	err := r.db.Model(&trip).Updates(trip).Error
 
 	return trip, err
 }

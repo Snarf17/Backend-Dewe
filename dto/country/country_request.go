@@ -1,4 +1,4 @@
-package tripdto
+package countrydto
 
 type CreateCountryRequest struct {
 	// ID              int       `json:`

@@ -2,6 +2,7 @@ package routes
 
 import (
 	"dewetour/handlers"
+	"dewetour/pkg/middleware"
 	"dewetour/pkg/mysql"
 	"dewetour/repositories"
 
@@ -15,7 +16,7 @@ func UserRoutes(r *mux.Router) {
 	r.HandleFunc("/users", h.FindUsers).Methods("GET")
 	r.HandleFunc("/users/{id}", h.GetUsers).Methods("GET")
 	r.HandleFunc("/users", h.CreateUsers).Methods("POST")
-	r.HandleFunc("/users/{id}", h.UpdateUsers).Methods("PATCH")
-	r.HandleFunc("/users/{id}", h.DeleteUsers).Methods("DELETE")
+	r.HandleFunc("/users/{id}", middleware.Auth(h.UpdateUsers)).Methods("PATCH")
+	r.HandleFunc("/users/{id}", middleware.Auth(h.DeleteUsers)).Methods("DELETE")
 
 }

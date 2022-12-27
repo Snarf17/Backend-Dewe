@@ -6,11 +6,13 @@ import (
 	"dewetour/models"
 	"dewetour/repositories"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/mux"
 )
 
@@ -94,6 +96,9 @@ var path_file = "http://localhost:9000/uploads/"
 func (h *Tripshand) CreateTrip(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "application/json")
 
+	UserInfo := r.Context().Value("userInfo").(jwt.MapClaims)
+	userID := int(UserInfo["id"].(float64))
+
 	dataContex := r.Context().Value("dataFile")
 	filename := dataContex.(string)
 
@@ -119,12 +124,7 @@ func (h *Tripshand) CreateTrip(w http.ResponseWriter, r *http.Request) {
 		Description: r.FormValue("desc"),
 		Image:       filename,
 	}
-	// if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-	// 	w.WriteHeader(http.StatusBadRequest)
-	// 	response := dto.ErrorResult{Code: http.StatusBadRequest, Message: err.Error()}
-	// 	json.NewEncoder(w).Encode(response)
-	// 	return
-	// }
+	fmt.Println(night)
 
 	validation := validator.New()
 	err := validation.Struct(request)
@@ -142,11 +142,13 @@ func (h *Tripshand) CreateTrip(w http.ResponseWriter, r *http.Request) {
 		Transportation: request.Transportation,
 		Eat:            request.Eat,
 		Day:            request.Day,
+		Night:          request.Night,
 		DateTrip:       request.DateTrip,
 		Price:          request.Price,
 		Quota:          request.Quota,
 		Description:    request.Description,
 		Image:          request.Image,
+		UserID:         userID,
 	}
 
 	data, err := h.TripRepository.CreateTrip(trip)
@@ -155,16 +157,30 @@ func (h *Tripshand) CreateTrip(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(err.Error())
 	}
 
+	get, err := h.TripRepository.GetTrip(data.ID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(err.Error())
+	}
+
 	trip.Image = path_file + trip.Image
 	w.WriteHeader(http.StatusOK)
-	response := dto.SuccessResult{Code: http.StatusOK, Data: data}
+	response := dto.SuccessResult{Code: http.StatusOK, Data: get}
 	json.NewEncoder(w).Encode(response)
 }
 func (h *Tripshand) UpdateTrip(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	// dataContex := r.Context().Value("dataFile")
-	// filename := dataContex.([]string)
+	UserInfo := r.Context().Value("userInfo").(jwt.MapClaims)
+	userID := int(UserInfo["id"].(float64))
+
+	dataContex := r.Context().Value("dataFile")
+	filename := dataContex.(string)
+
+	req := tripdto.UpdateTripRequest{
+		Image:  filename,
+		UserID: userID,
+	}
 
 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
 
@@ -193,16 +209,16 @@ func (h *Tripshand) UpdateTrip(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("eat") != "" {
 		trip.Eat = r.FormValue("eat")
 	}
-	dayInput, _ := strconv.Atoi(r.FormValue("day"))
-	if dayInput != 0 {
-		trip.Day = dayInput
+	day, _ := strconv.Atoi(r.FormValue("day"))
+	if day != 0 {
+		trip.Day = day
 	}
-	nightInput, _ := strconv.Atoi(r.FormValue("night"))
-	if nightInput != 0 {
-		trip.Night = nightInput
+	night, _ := strconv.Atoi(r.FormValue("night"))
+	if night != 0 {
+		trip.Night = night
 	}
-	date_tripInput, _ := time.Parse("2006-01-02", r.FormValue("date_trip"))
-	if date_tripInput.IsZero() {
+	date_trip, _ := time.Parse("2006-01-02", r.FormValue("date_trip"))
+	if date_trip.IsZero() {
 		date_trip := trip.DateTrip
 		trip.DateTrip = date_trip
 	}
@@ -217,9 +233,9 @@ func (h *Tripshand) UpdateTrip(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("description") != "" {
 		trip.Description = r.FormValue("desc")
 	}
-	// if r.FormValue("image") != "" {
-	// 	trip.Image = r.FormValue("image")
-	// }
+	if req.Image != "" {
+		trip.Image = req.Image
+	}
 
 	// result = make([]models.Trip, len(filename))
 
@@ -237,17 +253,14 @@ func (h *Tripshand) UpdateTrip(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// get data
-	// trip, err := h.TripRepository.GetTrip(data.ID)
-	// tripInserted.Image = os.Getenv("PATH_FILE") + tripInserted.Image
+	test, err := h.TripRepository.GetTrip(data.ID)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		response := dto.ErrorResult{Code: http.StatusBadRequest, Message: err.Error()}
-		json.NewEncoder(w).Encode(response)
-		return
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(err.Error())
 	}
 	// success
 	w.WriteHeader(http.StatusOK)
-	response := dto.SuccessResult{Code: http.StatusOK, Data: convertTripResponse(data)}
+	response := dto.SuccessResult{Code: http.StatusOK, Data: test}
 	json.NewEncoder(w).Encode(response)
 }
 func convertDeleteTripResponse(u models.Trip) tripdto.TripDeleteResponse {

@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/mux"
 )
 
@@ -57,17 +58,21 @@ func convertCountryResponse(u models.Country) countrydto.CountryResponse {
 		Name: u.Name,
 	}
 }
+func convertCountryDeleteResponse(u models.Country) countrydto.CountryDeleteResponse {
+	return countrydto.CountryDeleteResponse{
+		ID: u.ID,
+		// Name: u.Name,
+	}
+}
 
 func (h *Countryhand) CreateCountry(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "application/json")
 
-	request := new(countrydto.CreateCountryRequest)
+	UserInfo := r.Context().Value("userInfo").(jwt.MapClaims)
+	userID := int(UserInfo["id"].(float64))
 
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		response := dto.ErrorResult{Code: http.StatusBadRequest, Message: err.Error()}
-		json.NewEncoder(w).Encode(response)
-		return
+	request := countrydto.CreateCountryRequest{
+		Name: r.FormValue("name"),
 	}
 
 	validation := validator.New()
@@ -80,7 +85,8 @@ func (h *Countryhand) CreateCountry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	country := models.Country{
-		Name: request.Name,
+		Name:   request.Name,
+		UserID: userID,
 	}
 
 	data, err := h.CountryRepository.CreateCountry(country)
@@ -89,20 +95,25 @@ func (h *Countryhand) CreateCountry(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(err.Error())
 	}
 
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(err.Error())
+	}
+
 	w.WriteHeader(http.StatusOK)
-	response := dto.SuccessResult{Code: http.StatusOK, Data: convertCountryResponse(data)}
+	response := dto.SuccessResult{Code: http.StatusOK, Data: data}
 	json.NewEncoder(w).Encode(response)
 }
 
-func (h *Tripshand) UpdateCountry(w http.ResponseWriter, r *http.Request) {
+func (h *Countryhand) UpdateCountry(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	// dataContex := r.Context().Value("dataFile")
-	// filename := dataContex.([]string)
+	// UserInfo := r.Context().Value("userInfo").(jwt.MapClaims)
+	// userID := int(UserInfo["id"].(float64))
 
 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
 
-	trip, err := h.TripRepository.GetTrip(int(id))
+	country, err := h.CountryRepository.GetCountry(int(id))
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -111,21 +122,17 @@ func (h *Tripshand) UpdateCountry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.FormValue("title") != "" {
-		trip.Title = r.FormValue("title")
+	if r.FormValue("name") != "" {
+		country.Name = r.FormValue("name")
 	}
 
-	data, err := h.TripRepository.UpdateTrip(trip)
+	data, err := h.CountryRepository.UpdateCountry(country)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		response := dto.ErrorResult{Code: http.StatusInternalServerError, Message: err.Error()}
 		json.NewEncoder(w).Encode(response)
 		return
 	}
-
-	// get data
-	// trip, err := h.TripRepository.GetTrip(data.ID)
-	// tripInserted.Image = os.Getenv("PATH_FILE") + tripInserted.Image
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		response := dto.ErrorResult{Code: http.StatusBadRequest, Message: err.Error()}
@@ -134,6 +141,33 @@ func (h *Tripshand) UpdateCountry(w http.ResponseWriter, r *http.Request) {
 	}
 	// success
 	w.WriteHeader(http.StatusOK)
-	response := dto.SuccessResult{Code: http.StatusOK, Data: convertTripResponse(data)}
+	response := dto.SuccessResult{Code: http.StatusOK, Data: convertCountryResponse(data)}
+	json.NewEncoder(w).Encode(response)
+}
+
+func (h *Countryhand) DeleteCountry(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	id, _ := strconv.Atoi(mux.Vars(r)["id"])
+
+	country, err := h.CountryRepository.GetCountry(id)
+
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		response := dto.ErrorResult{Code: http.StatusBadRequest, Message: err.Error()}
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	data, err := h.CountryRepository.DeleteCountry(country, id)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		response := dto.ErrorResult{Code: http.StatusBadRequest, Message: err.Error()}
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	response := dto.SuccessResult{Code: http.StatusOK, Data: convertCountryDeleteResponse(data)}
 	json.NewEncoder(w).Encode(response)
 }

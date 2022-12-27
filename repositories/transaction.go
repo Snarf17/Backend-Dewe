@@ -8,9 +8,9 @@ import (
 
 type TransactionRepository interface {
 	FindTransaction() ([]models.Transaction, error)
-	// GetUsers(ID int) (models.User, error)
-	// CreateUsers(user models.User) (models.User, error)
-	// UpdateUsers(user models.User, ID int) (models.User, error)
+	GetTransaction(ID int) (models.Transaction, error)
+	CreateTransaction(transaction models.Transaction) (models.Transaction, error)
+	UpdateTransaction(transaction models.Transaction) (models.Transaction, error)
 	// DeleteUsers(user models.User, ID int) (models.User, error)
 }
 
@@ -24,7 +24,35 @@ func RepositoryTransaction(db *gorm.DB) *repository {
 
 func (r *repository) FindTransaction() ([]models.Transaction, error) {
 	var transaction []models.Transaction
-	err := r.db.Find(&transaction).Error
+	err := r.db.Preload("Trip").Preload("Trip.Country").Find(&transaction).Error
 
 	return transaction, err
 }
+
+func (r *repository) GetTransaction(ID int) (models.Transaction, error) {
+	var Transaction models.Transaction
+	err := r.db.Preload("Trip").Preload("Trip.Country").First(&Transaction, ID).Error
+
+	return Transaction, err
+}
+
+func (r *repository) CreateTransaction(transaction models.Transaction) (models.Transaction, error) {
+	// var user models.User
+	err := r.db.Create(&transaction).Error
+
+	return transaction, err
+}
+
+func (r *repository) UpdateTransaction(Transaction models.Transaction) (models.Transaction, error) {
+	// var user models.User
+	err := r.db.Model(&Transaction).Updates(Transaction).Error
+
+	return Transaction, err
+}
+
+// func (r *repository) DeleteTransaction(Transaction models.Transaction, ID int) (models.Transaction, error) {
+// 	// var user models.User
+// 	err := r.db.Preload("Country").Delete(&Transaction).Error
+
+// 	return Transaction, err
+// }

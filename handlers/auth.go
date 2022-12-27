@@ -36,6 +36,7 @@ func convertRegisterResponse(u models.User) authdto.RegisterResponse {
 	user := models.User{}
 	claims := jwt.MapClaims{}
 	claims["id"] = user.ID
+	// claims["role"] = user.Role
 	claims["exp"] = time.Now().Add(time.Hour * 2).Unix()
 
 	token, errGenerateToken := jwtToken.GenerateToken(&claims)
@@ -137,6 +138,7 @@ func (h *handlerAuth) Login(w http.ResponseWriter, r *http.Request) {
 	// Genarate Token
 	claims := jwt.MapClaims{}
 	claims["id"] = user.ID
+	claims["role"] = user.Role
 	claims["exp"] = time.Now().Add(time.Hour * 2).Unix()
 
 	token, errGenerateToken := jwtToken.GenerateToken(&claims)

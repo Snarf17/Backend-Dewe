@@ -11,7 +11,7 @@ type CountryRepository interface {
 	GetCountry(ID int) (models.Country, error)
 	CreateCountry(country models.Country) (models.Country, error)
 	UpdateCountry(country models.Country) (models.Country, error)
-	// DeleteCountry(user models.User, ID int) (models.User, error)
+	DeleteCountry(country models.Country, ID int) (models.Country, error)
 }
 
 type repositoryCountry struct {
@@ -35,7 +35,7 @@ func (r *repository) GetCountry(ID int) (models.Country, error) {
 	return country, err
 }
 func (r *repository) CreateCountry(country models.Country) (models.Country, error) {
-	// var user models.User
+	// var Country models.User
 	err := r.db.Create(&country).Error
 
 	return country, err
@@ -43,6 +43,13 @@ func (r *repository) CreateCountry(country models.Country) (models.Country, erro
 func (r *repository) UpdateCountry(country models.Country) (models.Country, error) {
 	// var Country models.Country
 	err := r.db.Save(&country).Error
+
+	return country, err
+}
+
+func (r *repository) DeleteCountry(country models.Country, ID int) (models.Country, error) {
+	// var user models.User
+	err := r.db.Delete(&country).Error
 
 	return country, err
 }

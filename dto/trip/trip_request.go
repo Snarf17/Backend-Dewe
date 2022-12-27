@@ -32,6 +32,7 @@ type UpdateTripRequest struct {
 	Quota          int       `json:"quota" form:"quota"`
 	Description    string    `json:"desc" form:"desc"`
 	Image          string    `json:"image" form:"image"`
+	UserID         int       `json:"-"`
 }
 
 // type UpdateUserRequest struct {
